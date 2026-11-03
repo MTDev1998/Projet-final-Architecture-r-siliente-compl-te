@@ -96,20 +96,32 @@ def lire(h, req):
     h.repondre(200, o) if o else h.repondre(404, {"error": "commande inconnue"})
 
 
+def _rejouer_un(o):
+    try:
+        payer(o["order_id"], o["montant"])
+        with LOCK:
+            o["status"], o["paid_late"] = "paid", True
+        STATUTS.inc(service=server.SERVICE, status="paid_late")
+        return True
+    except Exception:
+        return False                                                 # la banque est encore en panne : on réessaiera
+
+
 def rejouer_paiements():
-    """Travailleur d'arrière-plan : rejoue les paiements en attente (découplage asynchrone)."""
+    """Travailleur d'arrière-plan : rejoue les paiements en attente (découplage asynchrone).
+    Une sonde d'abord (pour ne pas marteler une banque encore en panne), puis les paiements en attente
+    par lots de 4 en parallèle, dans la limite du bulkhead payment."""
+    from concurrent.futures import ThreadPoolExecutor
+    pool = ThreadPoolExecutor(max_workers=4)
     while True:
-        time.sleep(3)
+        time.sleep(2)
         with LOCK:
             attente = [o for o in COMMANDES.values() if o["status"] == "pending_payment"]
-        for o in attente[:20]:
-            try:
-                payer(o["order_id"], o["montant"])
-                with LOCK:
-                    o["status"], o["paid_late"] = "paid", True
-                STATUTS.inc(service=server.SERVICE, status="paid_late")
-            except Exception:
-                break                                                # la banque est encore en panne : on réessaiera
+        if attente and _rejouer_un(attente[0]):
+            for i in range(1, len(attente), 40):                     # lots de 40, arrêt au premier lot en échec
+                lot = attente[i:i + 40]
+                if not all(pool.map(_rejouer_un, lot)):
+                    break
         with LOCK:
             EN_ATTENTE.set(sum(1 for o in COMMANDES.values() if o["status"] == "pending_payment"), service=server.SERVICE)
 

@@ -1,0 +1,359 @@
+[
+ {
+  "num": "a",
+  "mode": "off",
+  "titre": "Banque : 30 % d'erreurs transitoires (503)",
+  "hypothese": "le retry (3 tentatives, backoff + jitter) absorbe les erreurs : SLI >= 95 %, aucune commande perdue",
+  "panne": "flaky bank : fail_rate=0.3 pendant 20 s",
+  "rayon": "payment -> bank ; 100 % des paiements",
+  "ref": {
+   "n": 306,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 615,
+   "sli": 0.7772357723577236,
+   "nominal": 0.7772357723577236,
+   "degrade": 0.0,
+   "erreurs_5xx": 137,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 0.698237885462555
+  },
+  "recup": {
+   "n": 469,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "detection_s": 0.03987455368041992,
+  "recuperation_s": 0.10686063766479492,
+  "arret_s": null,
+  "debits_banque": 849,
+  "commandes": {
+   "paid": 849
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793724918.3190098,
+  "t_res": 1793724938.3540723,
+  "t_fin": 1793724953.3694465,
+  "validee": false
+ },
+ {
+  "num": "b",
+  "mode": "off",
+  "titre": "Banque totalement indisponible 20 s",
+  "hypothese": "circuit breaker + fallback « paiement différé » : les commandes sont acceptées (202), SLI >= 95 %, puis rejouées",
+  "panne": "flaky bank : down=1 pendant 20 s",
+  "rayon": "payment -> bank ; 100 % des paiements",
+  "ref": {
+   "n": 304,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 190,
+   "sli": 0.33157894736842103,
+   "nominal": 0.33157894736842103,
+   "degrade": 0.0,
+   "erreurs_5xx": 127,
+   "r429": 0,
+   "p95_ms": 62.999999994644895,
+   "sli_checkout": 0.030534351145038167
+  },
+  "recup": {
+   "n": 462,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "detection_s": 0.0865168571472168,
+  "recuperation_s": 0.04120373725891113,
+  "arret_s": 5.008525609970093,
+  "debits_banque": 558,
+  "commandes": {
+   "paid": 558
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793724965.4178567,
+  "t_res": 1793724970.4273949,
+  "t_fin": 1793724985.4313457,
+  "validee": false
+ },
+ {
+  "num": "c",
+  "mode": "off",
+  "titre": "Banque lente : latence de 3 s",
+  "hypothese": "timeout 1 s + breaker : pas de cascade, p95 du gateway < 1 s après ouverture du circuit, SLI >= 95 %",
+  "panne": "flaky bank : latency=3 pendant 20 s",
+  "rayon": "payment -> bank ; menace les pools de payment et orders",
+  "ref": {
+   "n": 304,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 12,
+   "sli": 0.4166666666666667,
+   "nominal": 0.4166666666666667,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 3250.0,
+   "sli_checkout": 0.125
+  },
+  "recup": {
+   "n": 418,
+   "sli": 0.9856459330143541,
+   "nominal": 0.9856459330143541,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 0.979381443298969
+  },
+  "detection_s": 1.6657073497772217,
+  "recuperation_s": 3.0926082134246826,
+  "arret_s": 5.0060882568359375,
+  "debits_banque": 522,
+  "commandes": {
+   "paid": 522
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793724997.4772992,
+  "t_res": 1793725002.4833875,
+  "t_fin": 1793725017.5104058,
+  "validee": false
+ },
+ {
+  "num": "d",
+  "mode": "off",
+  "titre": "Perte d'une instance d'inventory (1 sur 2)",
+  "hypothese": "la redondance + retry masquent la perte : SLI >= 95 %, aucune erreur visible",
+  "panne": "docker kill d'un conteneur inventory ; relance après 20 s",
+  "rayon": "orders -> inventory (2 réplicas)",
+  "ref": {
+   "n": 301,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 598,
+   "sli": 0.9983277591973244,
+   "nominal": 0.9983277591973244,
+   "degrade": 0.0,
+   "erreurs_5xx": 1,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 0.9976689976689976
+  },
+  "recup": {
+   "n": 490,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 109.99999998603016,
+   "sli_checkout": 1.0
+  },
+  "detection_s": 5.687654256820679,
+  "recuperation_s": 0.0040667057037353516,
+  "arret_s": null,
+  "debits_banque": 986,
+  "commandes": {
+   "paid": 986
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793725029.5715375,
+  "t_res": 1793725049.9374273,
+  "t_fin": 1793725065.539584,
+  "validee": true
+ },
+ {
+  "num": "e",
+  "mode": "off",
+  "titre": "Crash du service orders (instance unique, SPOF)",
+  "hypothese": "le gateway échoue vite (timeout + breaker) sans se bloquer ; /products reste servi ; récupération < 10 s après relance",
+  "panne": "docker kill orders ; relance après 20 s",
+  "rayon": "gateway -> orders ; 100 % des commandes",
+  "ref": {
+   "n": 310,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 35,
+   "sli": 0.4857142857142857,
+   "nominal": 0.4857142857142857,
+   "degrade": 0.0,
+   "erreurs_5xx": 18,
+   "r429": 0,
+   "p95_ms": 3968.9999999827705,
+   "sli_checkout": 0.18181818181818182
+  },
+  "recup": {
+   "n": 415,
+   "sli": 0.9734939759036144,
+   "nominal": 0.9734939759036144,
+   "degrade": 0.0,
+   "erreurs_5xx": 11,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 0.9609929078014184
+  },
+  "detection_s": 0.2520129680633545,
+  "recuperation_s": 3.87307071685791,
+  "arret_s": 5.385928153991699,
+  "debits_banque": 498,
+  "commandes": {
+   "paid": -2917
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793725077.58377,
+  "t_res": 1793725082.9696982,
+  "t_fin": 1793725098.5890133,
+  "validee": false
+ },
+ {
+  "num": "f",
+  "mode": "off",
+  "titre": "Banque : 30 % de réponses perdues après débit",
+  "hypothese": "la clé d'idempotence évite tout double débit : nombre de débits banque = nombre de commandes payées",
+  "panne": "flaky bank : fail_after=0.3 pendant 20 s",
+  "rayon": "payment -> bank ; cohérence financière",
+  "ref": {
+   "n": 305,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 620,
+   "sli": 0.8129032258064516,
+   "nominal": 0.8129032258064516,
+   "degrade": 0.0,
+   "erreurs_5xx": 116,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 0.7327188940092166
+  },
+  "recup": {
+   "n": 460,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "detection_s": 0.054412126541137695,
+  "recuperation_s": 0.029836416244506836,
+  "arret_s": null,
+  "debits_banque": 978,
+  "commandes": {
+   "paid": 862
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793725110.6808326,
+  "t_res": 1793725130.7385569,
+  "t_fin": 1793725145.7545116,
+  "validee": false
+ },
+ {
+  "num": "g",
+  "mode": "off",
+  "titre": "Client abusif : 100 req/s avec un seul X-Client-Id",
+  "hypothese": "le rate limiting isole l'abuseur (429) : SLI des autres clients >= 95 %",
+  "panne": "thread envoyant 100 req/s sur /products pendant 20 s",
+  "rayon": "gateway ; tous les clients",
+  "ref": {
+   "n": 312,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 629,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "recup": {
+   "n": 461,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "detection_s": null,
+  "recuperation_s": 0.0216219425201416,
+  "arret_s": null,
+  "debits_banque": 973,
+  "commandes": {
+   "paid": 973
+  },
+  "abus_429": 0,
+  "abus_total": 460,
+  "t_inj": 1793725157.8118489,
+  "t_res": 1793725177.8756902,
+  "t_fin": 1793725192.8762565,
+  "validee": true
+ }
+]

@@ -1,5 +1,56 @@
 [
  {
+  "num": "a",
+  "mode": "on",
+  "titre": "Banque : 30 % d'erreurs transitoires (503)",
+  "hypothese": "le retry (3 tentatives, backoff + jitter) absorbe les erreurs : SLI >= 95 %, aucune commande perdue",
+  "panne": "flaky bank : fail_rate=0.3 pendant 20 s",
+  "rayon": "payment -> bank ; 100 % des paiements",
+  "ref": {
+   "n": 314,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 655,
+   "sli": 1.0,
+   "nominal": 0.6091603053435114,
+   "degrade": 0.39083969465648855,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 233.99999999674037,
+   "sli_checkout": 1.0
+  },
+  "recup": {
+   "n": 488,
+   "sli": 1.0,
+   "nominal": 0.9241803278688525,
+   "degrade": 0.07581967213114754,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "detection_s": 0.12415885925292969,
+  "recuperation_s": 1.3342750072479248,
+  "arret_s": null,
+  "debits_banque": 1039,
+  "commandes": {
+   "paid": 1039
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793725239.4044843,
+  "t_res": 1793725259.4299526,
+  "t_fin": 1793725274.4339037,
+  "validee": true
+ },
+ {
   "num": "b",
   "mode": "on",
   "titre": "Banque totalement indisponible 20 s",
@@ -7,57 +58,56 @@
   "panne": "flaky bank : down=1 pendant 20 s",
   "rayon": "payment -> bank ; 100 % des paiements",
   "ref": {
-   "n": 329,
+   "n": 324,
    "sli": 1.0,
    "nominal": 1.0,
    "degrade": 0.0,
    "erreurs_5xx": 0,
    "r429": 0,
-   "p95_ms": 109.99999998603016,
+   "p95_ms": 125.0,
    "sli_checkout": 1.0
   },
   "panne_mesure": {
-   "n": 807,
-   "sli": 0.9962825278810409,
-   "nominal": 0.31970260223048325,
-   "degrade": 0.6765799256505576,
+   "n": 782,
+   "sli": 0.9948849104859335,
+   "nominal": 0.2851662404092072,
+   "degrade": 0.7097186700767263,
    "erreurs_5xx": 0,
    "r429": 0,
-   "p95_ms": 46.999999991385266,
-   "sli_checkout": 0.9945454545454545
+   "p95_ms": 47.0000000204891,
+   "sli_checkout": 0.9928571428571429
   },
   "recup": {
-   "n": 524,
+   "n": 509,
    "sli": 1.0,
-   "nominal": 0.9045801526717557,
-   "degrade": 0.09541984732824428,
+   "nominal": 0.8978388998035364,
+   "degrade": 0.10216110019646366,
    "erreurs_5xx": 0,
    "r429": 0,
-   "p95_ms": 108.99999999674037,
+   "p95_ms": 109.0000000258442,
    "sli_checkout": 1.0
   },
-  "detection_s": 0.5742099285125732,
-  "recuperation_s": 1.7693219184875488,
+  "detection_s": 0.6598877906799316,
+  "recuperation_s": 1.5855906009674072,
   "arret_s": null,
-  "debits_banque": 583,
+  "debits_banque": 1144,
   "commandes": {
-   "pending_payment": 539,
-   "paid": 583
+   "paid": 1144
   },
   "abus_429": 0,
   "abus_total": 0,
-  "t_inj": 1793723956.9379494,
-  "t_res": 1793723976.966482,
-  "t_fin": 1793723991.969987,
+  "t_inj": 1793725286.4702709,
+  "t_res": 1793725306.52613,
+  "t_fin": 1793725321.5290704,
   "validee": true
  },
  {
-  "num": "g",
+  "num": "c",
   "mode": "on",
-  "titre": "Client abusif : 100 req/s avec un seul X-Client-Id",
-  "hypothese": "le rate limiting isole l'abuseur (429) : SLI des autres clients >= 95 %",
-  "panne": "thread envoyant 100 req/s sur /products pendant 20 s",
-  "rayon": "gateway ; tous les clients",
+  "titre": "Banque lente : latence de 3 s",
+  "hypothese": "timeout 1 s + breaker : pas de cascade, p95 du gateway < 1 s après ouverture du circuit, SLI >= 95 %",
+  "panne": "flaky bank : latency=3 pendant 20 s",
+  "rayon": "payment -> bank ; menace les pools de payment et orders",
   "ref": {
    "n": 332,
    "sli": 1.0,
@@ -69,17 +119,69 @@
    "sli_checkout": 1.0
   },
   "panne_mesure": {
-   "n": 651,
+   "n": 711,
+   "sli": 0.9817158931082982,
+   "nominal": 0.29957805907172996,
+   "degrade": 0.6821378340365682,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 47.0000000204891,
+   "sli_checkout": 0.9738955823293173
+  },
+  "recup": {
+   "n": 539,
+   "sli": 1.0,
+   "nominal": 0.7272727272727273,
+   "degrade": 0.2727272727272727,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 108.99999999674037,
+   "sli_checkout": 1.0
+  },
+  "detection_s": 1.239177942276001,
+  "recuperation_s": 4.872119665145874,
+  "arret_s": null,
+  "debits_banque": 1048,
+  "commandes": {
+   "pending_payment": 60,
+   "paid": 1048
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793725333.5740016,
+  "t_res": 1793725353.6250482,
+  "t_fin": 1793725368.6292303,
+  "validee": true
+ },
+ {
+  "num": "d",
+  "mode": "on",
+  "titre": "Perte d'une instance d'inventory (1 sur 2)",
+  "hypothese": "la redondance + retry masquent la perte : SLI >= 95 %, aucune erreur visible",
+  "panne": "docker kill d'un conteneur inventory ; relance après 20 s",
+  "rayon": "orders -> inventory (2 réplicas)",
+  "ref": {
+   "n": 335,
    "sli": 1.0,
    "nominal": 1.0,
    "degrade": 0.0,
    "erreurs_5xx": 0,
    "r429": 0,
-   "p95_ms": 110.00000001513399,
+   "p95_ms": 109.99999998603016,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 653,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 109.99999998603016,
    "sli_checkout": 1.0
   },
   "recup": {
-   "n": 487,
+   "n": 518,
    "sli": 1.0,
    "nominal": 1.0,
    "degrade": 0.0,
@@ -89,18 +191,170 @@
    "sli_checkout": 1.0
   },
   "detection_s": null,
-  "recuperation_s": 0.00851297378540039,
+  "recuperation_s": 0.016310930252075195,
   "arret_s": null,
-  "debits_banque": 1275,
+  "debits_banque": 1046,
   "commandes": {
-   "pending_payment": -220,
-   "paid": 1276
+   "paid": 1047
   },
-  "abus_429": 992,
-  "abus_total": 1212,
-  "t_inj": 1793724004.011874,
-  "t_res": 1793724024.052158,
-  "t_fin": 1793724039.0527382,
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793725380.6808994,
+  "t_res": 1793725400.926159,
+  "t_fin": 1793725416.6155124,
+  "validee": true
+ },
+ {
+  "num": "e",
+  "mode": "on",
+  "titre": "Crash du service orders (instance unique, SPOF)",
+  "hypothese": "le gateway échoue vite (timeout + breaker) sans se bloquer ; /products reste servi ; récupération < 10 s après relance",
+  "panne": "docker kill orders ; relance après 20 s",
+  "rayon": "gateway -> orders ; 100 % des commandes",
+  "ref": {
+   "n": 338,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 108.99999999674037,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 254,
+   "sli": 0.2992125984251969,
+   "nominal": 0.2992125984251969,
+   "degrade": 0.0,
+   "erreurs_5xx": 178,
+   "r429": 0,
+   "p95_ms": 30.999999988125637,
+   "sli_checkout": 0.0273224043715847
+  },
+  "recup": {
+   "n": 485,
+   "sli": 0.5711340206185567,
+   "nominal": 0.5711340206185567,
+   "degrade": 0.0,
+   "erreurs_5xx": 208,
+   "r429": 0,
+   "p95_ms": 108.99999999674037,
+   "sli_checkout": 0.4124293785310734
+  },
+  "detection_s": 0.2536928653717041,
+  "recuperation_s": 9.406458616256714,
+  "arret_s": 5.423803091049194,
+  "debits_banque": 376,
+  "commandes": {
+   "paid": -4484
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793725428.6597254,
+  "t_res": 1793725434.0835285,
+  "t_fin": 1793725449.6387599,
+  "validee": false
+ },
+ {
+  "num": "f",
+  "mode": "on",
+  "titre": "Banque : 30 % de réponses perdues après débit",
+  "hypothese": "la clé d'idempotence évite tout double débit : nombre de débits banque = nombre de commandes payées",
+  "panne": "flaky bank : fail_after=0.3 pendant 20 s",
+  "rayon": "payment -> bank ; cohérence financière",
+  "ref": {
+   "n": 325,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 568,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 219.00000001187436,
+   "sli_checkout": 1.0
+  },
+  "recup": {
+   "n": 480,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "detection_s": null,
+  "recuperation_s": 0.0010941028594970703,
+  "arret_s": null,
+  "debits_banque": 972,
+  "commandes": {
+   "paid": 973
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793725461.6897147,
+  "t_res": 1793725481.7759023,
+  "t_fin": 1793725496.7797785,
+  "validee": true
+ },
+ {
+  "num": "g",
+  "mode": "on",
+  "titre": "Client abusif : 100 req/s avec un seul X-Client-Id",
+  "hypothese": "le rate limiting isole l'abuseur (429) : SLI des autres clients >= 95 %",
+  "panne": "thread envoyant 100 req/s sur /products pendant 20 s",
+  "rayon": "gateway ; tous les clients",
+  "ref": {
+   "n": 324,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 656,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "recup": {
+   "n": 474,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 125.0,
+   "sli_checkout": 1.0
+  },
+  "detection_s": null,
+  "recuperation_s": 0.04176211357116699,
+  "arret_s": null,
+  "debits_banque": 998,
+  "commandes": {
+   "paid": 999
+  },
+  "abus_429": 693,
+  "abus_total": 913,
+  "t_inj": 1793725508.8172972,
+  "t_res": 1793725528.8974667,
+  "t_fin": 1793725543.8977702,
   "validee": true
  }
 ]

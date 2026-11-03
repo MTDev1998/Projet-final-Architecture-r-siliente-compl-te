@@ -1,0 +1,101 @@
+# Campagne de chaos — avant (RESILIENCE=off) / après (RESILIENCE=on)
+
+SLI = part des requêtes du gateway servies (2xx) en moins de 1 s ; critère d'arrêt : SLI < 50% sur 5 s ; hypothèse validée si SLI pendant la panne >= 95% sans arrêt.
+
+| Exp | Expérience | SLI panne AVANT | SLI panne APRÈS | p95 AVANT | p95 APRÈS | 5xx AVANT | 5xx APRÈS | Arrêt auto AVANT | Détection / récup. APRÈS | Hypothèse (après) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| a | Banque : 30 % d'erreurs transitoires (503) | 77.7% | **100.0%** | 125 ms | 234 ms | 137 | 0 | non | 0.1 s / 1.3 s | validée |
+| b | Banque totalement indisponible 20 s | 33.2% | **99.5%** | 63 ms | 47 ms | 127 | 0 | oui (t+5.0 s) | 0.7 s / 1.6 s | validée |
+| c | Banque lente : latence de 3 s | 41.7% | **98.2%** | 3250 ms | 47 ms | 0 | 0 | oui (t+5.0 s) | 1.2 s / 4.9 s | validée |
+| d | Perte d'une instance d'inventory (1 sur 2) | 99.8% | **100.0%** | 125 ms | 110 ms | 1 | 0 | non | - / 0.0 s | validée |
+| e | Crash du service orders (instance unique, SPOF) | 48.6% | **29.9%** | 3969 ms | 31 ms | 18 | 178 | oui (t+5.4 s) | 0.3 s / 9.4 s | invalidée |
+| f | Banque : 30 % de réponses perdues après débit | 81.3% | **100.0%** | 125 ms | 219 ms | 116 | 0 | non | - / 0.0 s | validée |
+| g | Client abusif : 100 req/s avec un seul X-Client-Id | 100.0% | **100.0%** | 125 ms | 125 ms | 0 | 0 | non | - / 0.0 s | validée |
+
+## Fiches d'expérience (mode après)
+
+### Expérience a — Banque : 30 % d'erreurs transitoires (503)
+
+- **État stable (SLI mesuré)** : 100.0% sur 314 requêtes (avant : 100.0%)
+- **Hypothèse** : le retry (3 tentatives, backoff + jitter) absorbe les erreurs : SLI >= 95 %, aucune commande perdue
+- **Panne injectée** : flaky bank : fail_rate=0.3 pendant 20 s
+- **Rayon d'impact** : payment -> bank ; 100 % des paiements
+- **Critère d'arrêt** : SLI < 50% sur 5 s -> après : non déclenché ; avant : non déclenché
+- **Résultat mesuré (après)** : SLI 100.0% (nominal 60.9%, dégradé 39.1%), 0 erreurs 5xx, p95 234 ms ; récupération SLI 100.0%
+- **Résultat mesuré (avant)** : SLI 77.7%, 137 erreurs 5xx, p95 125 ms
+- **Temps de détection / récupération (après)** : 0.1 s / 1.3 s
+- **Hypothèse validée ?** : Oui
+
+### Expérience b — Banque totalement indisponible 20 s
+
+- **État stable (SLI mesuré)** : 100.0% sur 324 requêtes (avant : 100.0%)
+- **Hypothèse** : circuit breaker + fallback « paiement différé » : les commandes sont acceptées (202), SLI >= 95 %, puis rejouées
+- **Panne injectée** : flaky bank : down=1 pendant 20 s
+- **Rayon d'impact** : payment -> bank ; 100 % des paiements
+- **Critère d'arrêt** : SLI < 50% sur 5 s -> après : non déclenché ; avant : déclenché à t+5.0 s
+- **Résultat mesuré (après)** : SLI 99.5% (nominal 28.5%, dégradé 71.0%), 0 erreurs 5xx, p95 47 ms ; récupération SLI 100.0%
+- **Résultat mesuré (avant)** : SLI 33.2%, 127 erreurs 5xx, p95 63 ms
+- **Temps de détection / récupération (après)** : 0.7 s / 1.6 s
+- **Hypothèse validée ?** : Oui
+
+### Expérience c — Banque lente : latence de 3 s
+
+- **État stable (SLI mesuré)** : 100.0% sur 332 requêtes (avant : 100.0%)
+- **Hypothèse** : timeout 1 s + breaker : pas de cascade, p95 du gateway < 1 s après ouverture du circuit, SLI >= 95 %
+- **Panne injectée** : flaky bank : latency=3 pendant 20 s
+- **Rayon d'impact** : payment -> bank ; menace les pools de payment et orders
+- **Critère d'arrêt** : SLI < 50% sur 5 s -> après : non déclenché ; avant : déclenché à t+5.0 s
+- **Résultat mesuré (après)** : SLI 98.2% (nominal 30.0%, dégradé 68.2%), 0 erreurs 5xx, p95 47 ms ; récupération SLI 100.0%
+- **Résultat mesuré (avant)** : SLI 41.7%, 0 erreurs 5xx, p95 3250 ms
+- **Temps de détection / récupération (après)** : 1.2 s / 4.9 s
+- **Hypothèse validée ?** : Oui
+
+### Expérience d — Perte d'une instance d'inventory (1 sur 2)
+
+- **État stable (SLI mesuré)** : 100.0% sur 335 requêtes (avant : 100.0%)
+- **Hypothèse** : la redondance + retry masquent la perte : SLI >= 95 %, aucune erreur visible
+- **Panne injectée** : docker kill d'un conteneur inventory ; relance après 20 s
+- **Rayon d'impact** : orders -> inventory (2 réplicas)
+- **Critère d'arrêt** : SLI < 50% sur 5 s -> après : non déclenché ; avant : non déclenché
+- **Résultat mesuré (après)** : SLI 100.0% (nominal 100.0%, dégradé 0.0%), 0 erreurs 5xx, p95 110 ms ; récupération SLI 100.0%
+- **Résultat mesuré (avant)** : SLI 99.8%, 1 erreurs 5xx, p95 125 ms
+- **Temps de détection / récupération (après)** : - / 0.0 s
+- **Hypothèse validée ?** : Oui
+
+### Expérience e — Crash du service orders (instance unique, SPOF)
+
+- **État stable (SLI mesuré)** : 100.0% sur 338 requêtes (avant : 100.0%)
+- **Hypothèse** : le gateway échoue vite (timeout + breaker) sans se bloquer ; /products reste servi ; récupération < 10 s après relance
+- **Panne injectée** : docker kill orders ; relance après 20 s
+- **Rayon d'impact** : gateway -> orders ; 100 % des commandes
+- **Critère d'arrêt** : SLI < 50% sur 5 s -> après : DÉCLENCHÉ à t+5.4 s ; avant : déclenché à t+5.4 s
+- **Résultat mesuré (après)** : SLI 29.9% (nominal 29.9%, dégradé 0.0%), 178 erreurs 5xx, p95 31 ms ; récupération SLI 57.1%
+- **Résultat mesuré (avant)** : SLI 48.6%, 18 erreurs 5xx, p95 3969 ms
+- **Temps de détection / récupération (après)** : 0.3 s / 9.4 s
+- **Hypothèse validée ?** : Non
+
+### Expérience f — Banque : 30 % de réponses perdues après débit
+
+- **État stable (SLI mesuré)** : 100.0% sur 325 requêtes (avant : 100.0%)
+- **Hypothèse** : la clé d'idempotence évite tout double débit : nombre de débits banque = nombre de commandes payées
+- **Panne injectée** : flaky bank : fail_after=0.3 pendant 20 s
+- **Rayon d'impact** : payment -> bank ; cohérence financière
+- **Critère d'arrêt** : SLI < 50% sur 5 s -> après : non déclenché ; avant : non déclenché
+- **Résultat mesuré (après)** : SLI 100.0% (nominal 100.0%, dégradé 0.0%), 0 erreurs 5xx, p95 219 ms ; récupération SLI 100.0%
+- **Résultat mesuré (avant)** : SLI 81.3%, 116 erreurs 5xx, p95 125 ms
+- **Temps de détection / récupération (après)** : - / 0.0 s
+- **Hypothèse validée ?** : Oui
+- **Idempotence** : débits banque après = 972 pour commandes {'paid': 973} ; avant = 978 pour {'paid': 862}
+
+### Expérience g — Client abusif : 100 req/s avec un seul X-Client-Id
+
+- **État stable (SLI mesuré)** : 100.0% sur 324 requêtes (avant : 100.0%)
+- **Hypothèse** : le rate limiting isole l'abuseur (429) : SLI des autres clients >= 95 %
+- **Panne injectée** : thread envoyant 100 req/s sur /products pendant 20 s
+- **Rayon d'impact** : gateway ; tous les clients
+- **Critère d'arrêt** : SLI < 50% sur 5 s -> après : non déclenché ; avant : non déclenché
+- **Résultat mesuré (après)** : SLI 100.0% (nominal 100.0%, dégradé 0.0%), 0 erreurs 5xx, p95 125 ms ; récupération SLI 100.0%
+- **Résultat mesuré (avant)** : SLI 100.0%, 0 erreurs 5xx, p95 125 ms
+- **Temps de détection / récupération (après)** : - / 0.0 s
+- **Hypothèse validée ?** : Oui
+- **Client abusif** : après 693 x 429 sur 913 ; avant 0 x 429 sur 460

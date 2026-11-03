@@ -46,7 +46,7 @@ def figure(nom, titre, courbes, ylabel, ylim=None, log=False):
         debut, fin = res[mode][0]["t_inj"] - 15, res[mode][-1]["t_fin"] + 5
         for expr, label, kw in courbes:
             for metric, xs, ys in query_range(expr, debut, fin):
-                ax.plot(xs, ys, label=label.format(**metric) if metric else label, lw=1.3, **kw)
+                ax.plot(xs, ys, label=label.format(**metric) if metric else label, **{"lw": 1.3, **kw})
         annoter(ax, mode)
         ax.set_title(f"{'AVANT (RESILIENCE=off)' if mode == 'off' else 'APRÈS (RESILIENCE=on)'}", fontsize=10)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
@@ -69,9 +69,10 @@ def figure(nom, titre, courbes, ylabel, ylim=None, log=False):
     print("écrit", out)
 
 
-figure("chaos_sli.png", "SLI de disponibilité du gateway (règle d'enregistrement, fenêtre 5 min) — zones rouges = pannes injectées (a..g)",
-       [("slo:gateway_availability:ratio_rate5m", "disponibilité 5 min", {"color": "#1d4ed8"}),
-        ("vector(0.995)", "SLO 99,5 %", {"color": "black", "ls": "--", "lw": 1})], "disponibilité", ylim=(0.5, 1.01))
+figure("chaos_sli.png", "SLI de disponibilité du gateway (fenêtres 30 s et 5 min) — zones rouges = pannes injectées (a..g)",
+       [("1 - sum(rate(http_requests_total{service=\"gateway\",code=~\"5..\"}[30s])) / clamp_min(sum(rate(http_requests_total{service=\"gateway\",code!=\"429\"}[30s])), 1e-9)", "disponibilité 30 s", {"color": "#93c5fd"}),
+        ("slo:gateway_availability:ratio_rate5m", "disponibilité 5 min (règle SLO)", {"color": "#1d4ed8"}),
+        ("vector(0.995)", "SLO 99,5 %", {"color": "black", "ls": "--", "lw": 1})], "disponibilité", ylim=(0.0, 1.02))
 figure("chaos_codes.png", "Gateway : requêtes par seconde selon le code HTTP",
        [("sum by (code) (rate(http_requests_total{service=\"gateway\"}[30s]))", "{code}", {})], "req/s")
 figure("chaos_p95.png", "Latence p95 des appels sortants (service → dépendance)",

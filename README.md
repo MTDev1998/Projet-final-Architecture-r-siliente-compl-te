@@ -44,6 +44,22 @@ python chaos/graphes.py                # courbes Prometheus de la campagne -> do
 Expériences : (a) banque 30 % d'erreurs, (b) banque indisponible, (c) banque lente 3 s, (d) perte d'une instance
 inventory, (e) crash d'orders, (f) réponses perdues après débit (idempotence), (g) client abusif.
 
+<!-- resultats:debut -->
+## Résultats de la dernière campagne (avant / après patterns)
+
+| Exp | Expérience | SLI panne AVANT | SLI panne APRÈS | p95 AVANT | p95 APRÈS | 5xx AVANT | 5xx APRÈS | Arrêt auto AVANT | Détection / récup. APRÈS | Hypothèse (après) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| a | Banque : 30 % d'erreurs transitoires (503) | 77.7% | **100.0%** | 125 ms | 234 ms | 137 | 0 | non | 0.1 s / 1.3 s | validée |
+| b | Banque totalement indisponible 20 s | 33.2% | **99.5%** | 63 ms | 47 ms | 127 | 0 | oui (t+5.0 s) | 0.7 s / 1.6 s | validée |
+| c | Banque lente : latence de 3 s | 41.7% | **98.2%** | 3250 ms | 47 ms | 0 | 0 | oui (t+5.0 s) | 1.2 s / 4.9 s | validée |
+| d | Perte d'une instance d'inventory (1 sur 2) | 99.8% | **100.0%** | 125 ms | 110 ms | 1 | 0 | non | - / 0.0 s | validée |
+| e | Crash du service orders (instance unique, SPOF) | 48.6% | **29.9%** | 3969 ms | 31 ms | 18 | 178 | oui (t+5.4 s) | 0.3 s / 9.4 s | invalidée |
+| f | Banque : 30 % de réponses perdues après débit | 81.3% | **100.0%** | 125 ms | 219 ms | 116 | 0 | non | - / 0.0 s | validée |
+| g | Client abusif : 100 req/s avec un seul X-Client-Id | 100.0% | **100.0%** | 125 ms | 125 ms | 0 | 0 | non | - / 0.0 s | validée |
+
+Détail des fiches : `chaos/resultats/comparaison.md` ; figures : `docs/chaos_*.png` ; analyse complète : `docs/Dossier_architecture_MOUSSAOUI_Tarek.docx`.
+<!-- resultats:fin -->
+
 ## Contenu du dépôt
 
 | Dossier | Contenu |
