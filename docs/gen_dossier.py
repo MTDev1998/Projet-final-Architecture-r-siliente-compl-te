@@ -356,6 +356,35 @@ doc.add_heading("7.2 Kubernetes (bonus)", 2)
 puces(["k8s/gen_k8s.py produit un Deployment et un Service par service : 3 réplicas pour gateway et orders, 2 pour inventory et payment, 3 sondes (startup, liveness, readiness), ressources, rolling update maxUnavailable: 0 / maxSurge: 1, anti-affinité par nœud, terminationGracePeriodSeconds 30 (drain de 5 s).",
        "PodDisruptionBudget minAvailable: 2 sur gateway et orders : un drain de nœud n'évince qu'un pod à la fois (vérifié au TP 10 sur un cluster kind : 0 requête en échec pendant delete pod, rolling update et drain).",
        "Avec ces manifestes, la disponibilité théorique de l'acceptation des commandes passe de 99,0 % à 99,995 % (chapitre 3)."])
+cr_k8s = os.path.join(RACINE, "k8s", "compte_rendu_k8s.txt")
+if os.path.exists(cr_k8s):
+    cr = open(cr_k8s, encoding="utf-8").read()
+
+    def strip_ts(t):
+        return "\n".join(re.sub(r"^\[[^\]]+\] ", "", l) for l in t.splitlines())
+
+    def bloc(debut, fin=None):
+        lignes = cr.splitlines()
+        i = next(k for k, l in enumerate(lignes) if debut in l)
+        j = len(lignes) if fin is None else next(k for k, l in enumerate(lignes) if fin in l and k > i)
+        return strip_ts("\n".join(lignes[i:j]))
+
+    def g(pat):
+        m = re.search(pat, cr)
+        return m.group(1) if m else "?"
+
+    doc.add_heading("Vérification sur un cluster kind (k8s/test_k8s.py)", 3)
+    para(f"Cluster local kind (1 control-plane + 2 workers), images chargées, 11 pods déployés, boucle de requêtes dans le cluster "
+         f"(2/3 de POST /checkout, 1/3 de GET /products, 1 requête toutes les 0,2 s) pendant trois perturbations. "
+         f"Résultat : **{g(r'Requêtes totales : (\d+)')} requêtes, {g(r'en échec \(hors 2xx\) : (\d+)')} en échec** sur l'ensemble ; "
+         f"pod orders recréé et prêt en {g(r'Ready à nouveau ([\d.]+) s')} s ; rolling update du gateway en {g(r'rolling update terminé en ([\d.]+) s')} s ; "
+         f"drain d'un worker en {g(r'drain terminé en ([\d.]+) s')} s avec les PodDisruptionBudgets.")
+    code(bloc("=== 3.", "=== 4."), size=6.5)
+    code(bloc("=== 5.", "=== 6."), size=6.5)
+    code(bloc("=== 6."), size=6.5)
+    para("Le drain montre les refus d'éviction « Cannot evict pod as it would violate the pod's disruption budget » : Kubernetes "
+         "déplace les pods de gateway et d'orders un par un, en attendant que le remplaçant soit Ready, et le trafic n'est "
+         "jamais interrompu. Compte rendu complet : k8s/compte_rendu_k8s.txt.", size=9.5, italic=True)
 doc.add_heading("7.3 Exploitation", 2)
 puces(["Santé : /health/ready par instance, /health/deps pour le diagnostic des dépendances, tableau de bord Grafana, alertes Prometheus (page / ticket).",
        "Arrêt propre : SIGTERM → readiness en échec → 5 s de drain → arrêt ; aucun appel coupé lors d'un redéploiement.",
@@ -389,7 +418,7 @@ observability/prometheus/  prometheus.yml  alerts.yml       découverte DNS, SLI
 observability/grafana/     provisioning/  dashboards/  gen_dashboard.py
 chaos/             experiences.py  graphes.py  resultats/   campagne avant / après, courbes, JSON, comparaison.md
 analyse/           archi.py  graphe.py  resultats_dispo.txt
-k8s/               gen_k8s.py  *.yaml  kind-config.yaml     Deployments, Services, PDB
+k8s/               gen_k8s.py  test_k8s.py  *.yaml  kind/   Deployments, Services, PDB, test sur kind
 docs/              Dossier_architecture_MOUSSAOUI_Tarek.docx, figures""")
 
 doc.core_properties.author = AUTEUR

@@ -71,7 +71,7 @@ Détail des fiches : `chaos/resultats/comparaison.md` ; figures : `docs/chaos_*.
 | `observability/` | `prometheus.yml` (découverte DNS), `alerts.yml` (SLO 99,5 %, burn rate, latence, circuits), dashboard Grafana (`gen_dashboard.py`) |
 | `chaos/` | `experiences.py` (campagne automatisée), `graphes.py`, `resultats/` (JSON, `comparaison.md`) |
 | `analyse/` | `archi.py` (disponibilité composite, SPOF), `graphe.py` (graphe de dépendances) |
-| `k8s/` | Deployments (3 réplicas gateway/orders), Services, PodDisruptionBudgets, `kind-config.yaml`, `gen_k8s.py` |
+| `k8s/` | Deployments (3 réplicas gateway/orders), Services, PodDisruptionBudgets, `gen_k8s.py`, `test_k8s.py`, `kind/kind-config.yaml` |
 | `docs/` | **Dossier d'architecture** (`Dossier_architecture_MOUSSAOUI_Tarek.docx`), figures |
 
 ## Patterns mis en œuvre (chacun relié à un risque de l'AMDEC, voir le dossier)
@@ -89,12 +89,13 @@ Détail des fiches : `chaos/resultats/comparaison.md` ; figures : `docs/chaos_*.
 | Cache résilient | gateway | TTL 5 s, stale-if-error 300 s |
 | Idempotence | payment→banque, inventory, orders | `Idempotency-Key` = `order_id` |
 
-## Kubernetes (bonus)
+## Kubernetes (bonus, vérifié sur kind)
 
 ```bash
-python k8s/gen_k8s.py
-kind create cluster --config k8s/kind-config.yaml
-docker compose build && for s in gateway orders inventory payment bank; do docker tag projet-final-architecture-r-siliente-compl-te-$s shopflow-$s:1.0; done
-kind load docker-image shopflow-gateway:1.0 shopflow-orders:1.0 shopflow-inventory:1.0 shopflow-payment:1.0 shopflow-bank:1.0 --name shopflow-final
-kubectl apply -f k8s/
+python k8s/gen_k8s.py          # régénère les manifestes (3 réplicas gateway/orders, 2 inventory/payment, sondes, PDB, anti-affinité)
+python k8s/test_k8s.py         # crée le cluster kind, charge les images, déploie, teste delete pod / rolling update / drain, écrit k8s/compte_rendu_k8s.txt
 ```
+
+Déploiement manuel : `kind create cluster --config k8s/kind/kind-config.yaml`, tag des images en `shopflow-<service>:1.0`,
+`kind load docker-image ... --name shopflow-final`, `kubectl apply -f k8s/`. Résultats mesurés dans `k8s/compte_rendu_k8s.txt`
+et dans le dossier d'architecture (chapitre 7.2).

@@ -1,0 +1,150 @@
+[18:27:11 +  0.0s] === 1. Cluster kind, images, déploiement ===
+[18:27:11 +  0.4s] $ kubectl get nodes
+[18:27:11 +  0.4s]   NAME                           STATUS   ROLES           AGE   VERSION
+[18:27:11 +  0.4s]   shopflow-final-control-plane   Ready    control-plane   92s   v1.37.0
+[18:27:11 +  0.4s]   shopflow-final-worker          Ready    <none>          79s   v1.37.0
+[18:27:11 +  0.4s]   shopflow-final-worker2         Ready    <none>          79s   v1.37.0
+[18:27:33 + 22.1s] $ "C:\Users\Tarek Moussaoui\AppData\Local\Microsoft\WinGet\Packages\Kubernetes.kind_Microsoft.Winget.Source_8wekyb3d8bbwe\kind.exe" load docker-image shopflow-bank:1.0 shopflow-bank:2.0 shopflow-inventory:1.0 shopflow-inventory:2.0 shopflow-payment:1.0 shopflow-payment:2.0 shopflow-orders:1.0 shopflow-orders:2.0 shopflow-gateway:1.0 shopflow-gateway:2.0 --name shopflow-final
+[18:27:34 + 22.8s] $ kubectl apply -f k8s/
+[18:27:34 + 22.8s]   deployment.apps/bank unchanged
+[18:27:34 + 22.8s]   service/bank unchanged
+[18:27:34 + 22.8s]   deployment.apps/gateway unchanged
+[18:27:34 + 22.8s]   service/gateway unchanged
+[18:27:34 + 22.8s]   poddisruptionbudget.policy/gateway-pdb configured
+[18:27:34 + 22.8s]   deployment.apps/inventory unchanged
+[18:27:34 + 22.8s]   service/inventory unchanged
+[18:27:34 + 22.8s]   deployment.apps/orders unchanged
+[18:27:34 + 22.8s]   service/orders unchanged
+[18:27:34 + 22.8s]   poddisruptionbudget.policy/orders-pdb configured
+[18:27:34 + 22.8s]   deployment.apps/payment unchanged
+[18:27:34 + 22.8s]   service/payment unchanged
+[18:27:34 + 23.0s] $ kubectl rollout status deployment/bank --timeout=180s
+[18:27:34 + 23.0s]   deployment "bank" successfully rolled out
+[18:27:34 + 23.1s] $ kubectl rollout status deployment/inventory --timeout=180s
+[18:27:34 + 23.1s]   deployment "inventory" successfully rolled out
+[18:27:34 + 23.3s] $ kubectl rollout status deployment/payment --timeout=180s
+[18:27:34 + 23.3s]   deployment "payment" successfully rolled out
+[18:27:35 + 23.5s] $ kubectl rollout status deployment/orders --timeout=180s
+[18:27:35 + 23.5s]   deployment "orders" successfully rolled out
+[18:27:35 + 23.6s] $ kubectl rollout status deployment/gateway --timeout=180s
+[18:27:35 + 23.6s]   deployment "gateway" successfully rolled out
+[18:27:35 + 23.8s] $ kubectl get pods -o wide
+[18:27:35 + 23.8s]   NAME                         READY   STATUS    RESTARTS   AGE   IP           NODE                     NOMINATED NODE   READINESS GATES
+[18:27:35 + 23.8s]   bank-5568774f4-mgdhd         1/1     Running   0          63s   10.244.2.2   shopflow-final-worker    <none>           <none>
+[18:27:35 + 23.8s]   gateway-6986ffc6bf-8cngx     1/1     Running   0          63s   10.244.1.3   shopflow-final-worker2   <none>           <none>
+[18:27:35 + 23.8s]   gateway-6986ffc6bf-njtzz     1/1     Running   0          63s   10.244.1.2   shopflow-final-worker2   <none>           <none>
+[18:27:35 + 23.8s]   gateway-6986ffc6bf-s4ml2     1/1     Running   0          63s   10.244.2.3   shopflow-final-worker    <none>           <none>
+[18:27:35 + 23.8s]   inventory-78cbf8fdcd-gwvdf   1/1     Running   0          63s   10.244.1.4   shopflow-final-worker2   <none>           <none>
+[18:27:35 + 23.8s]   inventory-78cbf8fdcd-rwkqr   1/1     Running   0          63s   10.244.2.4   shopflow-final-worker    <none>           <none>
+[18:27:35 + 23.8s]   orders-86c69c84c8-bplwx      1/1     Running   0          63s   10.244.1.5   shopflow-final-worker2   <none>           <none>
+[18:27:35 + 23.8s]   orders-86c69c84c8-nb65b      1/1     Running   0          63s   10.244.2.5   shopflow-final-worker    <none>           <none>
+[18:27:35 + 23.8s]   orders-86c69c84c8-nt5st      1/1     Running   0          63s   10.244.1.6   shopflow-final-worker2   <none>           <none>
+[18:27:35 + 23.8s]   payment-5c4559bc7f-2n2z4     1/1     Running   0          63s   10.244.1.7   shopflow-final-worker2   <none>           <none>
+[18:27:35 + 23.8s]   payment-5c4559bc7f-hfmf2     1/1     Running   0          63s   10.244.2.6   shopflow-final-worker    <none>           <none>
+[18:27:35 + 23.9s] $ kubectl get svc,pdb
+[18:27:35 + 23.9s]   NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+[18:27:35 + 23.9s]   service/bank         ClusterIP   10.96.147.82    <none>        8080/TCP         63s
+[18:27:35 + 23.9s]   service/gateway      NodePort    10.96.180.70    <none>        8000:32289/TCP   63s
+[18:27:35 + 23.9s]   service/inventory    ClusterIP   10.96.153.27    <none>        8002/TCP         63s
+[18:27:35 + 23.9s]   service/kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          115s
+[18:27:35 + 23.9s]   service/orders       ClusterIP   10.96.111.219   <none>        8001/TCP         63s
+[18:27:35 + 23.9s]   service/payment      ClusterIP   10.96.114.54    <none>        8003/TCP         63s
+[18:27:35 + 23.9s]   
+[18:27:35 + 23.9s]   NAME                                     MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+[18:27:35 + 23.9s]   poddisruptionbudget.policy/gateway-pdb   2               N/A               1                     63s
+[18:27:35 + 23.9s]   poddisruptionbudget.policy/orders-pdb    2               N/A               1                     63s
+
+[18:27:35 + 23.9s] === 2. Boucle de requêtes dans le cluster (pod boucle -> Service gateway, 1 requête / 0,2 s) ===
+[18:27:36 + 24.5s] $ kubectl apply -f k8s/_boucle_pod.yaml
+[18:27:36 + 24.5s]   pod/boucle created
+[18:27:36 + 25.3s] $ kubectl wait --for=condition=Ready pod/boucle --timeout=60s
+[18:27:36 + 25.3s]   pod/boucle condition met
+
+[18:27:44 + 33.3s] === 3. kubectl delete pod (orders) : recréation automatique, trafic maintenu par les 2 autres réplicas ===
+[18:27:45 + 33.6s] $ kubectl delete pod orders-86c69c84c8-bplwx --wait=false
+[18:27:45 + 33.6s]   pod "orders-86c69c84c8-bplwx" deleted from default namespace
+[18:27:49 + 37.8s] $ kubectl get pods -l app=orders -o wide --no-headers
+[18:27:49 + 37.8s]   orders-86c69c84c8-9szzc   0/1   Running       0     4s    10.244.2.7   shopflow-final-worker    <none>   <none>
+[18:27:49 + 37.8s]   orders-86c69c84c8-bplwx   1/1   Terminating   0     77s   10.244.1.5   shopflow-final-worker2   <none>   <none>
+[18:27:49 + 37.8s]   orders-86c69c84c8-nb65b   1/1   Running       0     77s   10.244.2.5   shopflow-final-worker    <none>   <none>
+[18:27:49 + 37.8s]   orders-86c69c84c8-nt5st   1/1   Running       0     77s   10.244.1.6   shopflow-final-worker2   <none>   <none>
+[18:27:51 + 40.3s] $ kubectl get pods -l app=orders -o wide --no-headers
+[18:27:51 + 40.3s]   orders-86c69c84c8-9szzc   1/1   Running   0     6s    10.244.2.7   shopflow-final-worker    <none>   <none>
+[18:27:51 + 40.3s]   orders-86c69c84c8-nb65b   1/1   Running   0     79s   10.244.2.5   shopflow-final-worker    <none>   <none>
+[18:27:51 + 40.3s]   orders-86c69c84c8-nt5st   1/1   Running   0     79s   10.244.1.6   shopflow-final-worker2   <none>   <none>
+[18:27:51 + 40.3s] -> 3 pods orders Ready à nouveau 6.7 s après la suppression (ok)
+
+[18:27:56 + 45.3s] === 4. Rolling update gateway 1.0 -> 2.0 (maxUnavailable 0, maxSurge 1, drain 5 s sur SIGTERM) ===
+[18:27:57 + 45.4s] $ kubectl set image deployment/gateway gateway=shopflow-gateway:2.0
+[18:27:57 + 45.4s]   deployment.apps/gateway image updated
+[18:28:10 + 58.7s] $ kubectl rollout status deployment/gateway --timeout=180s
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 1 out of 3 new replicas have been updated...
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 1 out of 3 new replicas have been updated...
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 1 out of 3 new replicas have been updated...
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 2 out of 3 new replicas have been updated...
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 2 out of 3 new replicas have been updated...
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 2 out of 3 new replicas have been updated...
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 1 old replicas are pending termination...
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 1 old replicas are pending termination...
+[18:28:10 + 58.7s]   Waiting for deployment "gateway" rollout to finish: 1 old replicas are pending termination...
+[18:28:10 + 58.7s]   deployment "gateway" successfully rolled out
+[18:28:10 + 58.8s] $ kubectl get pods -l app=gateway -o wide --no-headers
+[18:28:10 + 58.8s]   gateway-5b69dcfdfd-6m55f   1/1   Running       0     13s   10.244.2.8   shopflow-final-worker    <none>   <none>
+[18:28:10 + 58.8s]   gateway-5b69dcfdfd-kjktj   1/1   Running       0     5s    10.244.2.9   shopflow-final-worker    <none>   <none>
+[18:28:10 + 58.8s]   gateway-5b69dcfdfd-lcjkm   1/1   Running       0     9s    10.244.1.8   shopflow-final-worker2   <none>   <none>
+[18:28:10 + 58.8s]   gateway-6986ffc6bf-8cngx   1/1   Terminating   0     98s   10.244.1.3   shopflow-final-worker2   <none>   <none>
+[18:28:10 + 58.8s]   gateway-6986ffc6bf-s4ml2   1/1   Terminating   0     98s   10.244.2.3   shopflow-final-worker    <none>   <none>
+[18:28:10 + 58.8s] -> rolling update terminé en 13.4 s
+
+[18:28:15 + 63.8s] === 5. kubectl drain d'un worker : les PDB (minAvailable 2 sur gateway et orders) limitent les évictions ===
+[18:28:15 + 64.0s] Répartition des pods par nœud : {'shopflow-final-worker': 7, 'shopflow-final-worker2': 4} -> drain de shopflow-final-worker
+[18:28:27 + 75.7s] $ kubectl drain shopflow-final-worker --ignore-daemonsets --delete-emptydir-data --timeout=180s
+[18:28:27 + 75.7s]   node/shopflow-final-worker cordoned
+[18:28:27 + 75.7s]   evicting pod default/bank-5568774f4-mgdhd
+[18:28:27 + 75.7s]   evicting pod default/orders-86c69c84c8-9szzc
+[18:28:27 + 75.7s]   evicting pod default/orders-86c69c84c8-nb65b
+[18:28:27 + 75.7s]   evicting pod default/inventory-78cbf8fdcd-rwkqr
+[18:28:27 + 75.7s]   evicting pod default/gateway-5b69dcfdfd-kjktj
+[18:28:27 + 75.7s]   evicting pod default/gateway-5b69dcfdfd-6m55f
+[18:28:27 + 75.7s]   evicting pod default/payment-5c4559bc7f-hfmf2
+[18:28:27 + 75.7s]   evicting pod default/orders-86c69c84c8-nb65b
+[18:28:27 + 75.7s]   evicting pod default/gateway-5b69dcfdfd-kjktj
+[18:28:27 + 75.7s]   pod/bank-5568774f4-mgdhd evicted
+[18:28:27 + 75.7s]   pod/inventory-78cbf8fdcd-rwkqr evicted
+[18:28:27 + 75.7s]   pod/payment-5c4559bc7f-hfmf2 evicted
+[18:28:27 + 75.7s]   pod/orders-86c69c84c8-9szzc evicted
+[18:28:27 + 75.7s]   pod/gateway-5b69dcfdfd-6m55f evicted
+[18:28:27 + 75.7s]   pod/orders-86c69c84c8-nb65b evicted
+[18:28:27 + 75.7s]   pod/gateway-5b69dcfdfd-kjktj evicted
+[18:28:27 + 75.7s]   node/shopflow-final-worker drained
+[18:28:27 + 75.7s]   Warning: ignoring DaemonSet-managed Pods: kube-system/kindnet-fjwdb, kube-system/kube-proxy-mdpvl
+[18:28:27 + 75.7s]   error when evicting pods/"orders-86c69c84c8-nb65b" -n "default" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+[18:28:27 + 75.7s]   error when evicting pods/"gateway-5b69dcfdfd-kjktj" -n "default" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+[18:28:27 + 75.8s] $ kubectl get pods -l projet=shopflow -o wide --no-headers
+[18:28:27 + 75.8s]   bank-5568774f4-vhngn         1/1   Running   0     12s    10.244.1.9    shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   gateway-5b69dcfdfd-kjk7n     1/1   Running   0     6s     10.244.1.15   shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   gateway-5b69dcfdfd-lcjkm     1/1   Running   0     26s    10.244.1.8    shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   gateway-5b69dcfdfd-m8jq5     1/1   Running   0     12s    10.244.1.13   shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   inventory-78cbf8fdcd-fvfpk   1/1   Running   0     12s    10.244.1.10   shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   inventory-78cbf8fdcd-gwvdf   1/1   Running   0     115s   10.244.1.4    shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   orders-86c69c84c8-dm4qv      1/1   Running   0     6s     10.244.1.14   shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   orders-86c69c84c8-f6k9s      1/1   Running   0     12s    10.244.1.12   shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   orders-86c69c84c8-nt5st      1/1   Running   0     115s   10.244.1.6    shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   payment-5c4559bc7f-2n2z4     1/1   Running   0     115s   10.244.1.7    shopflow-final-worker2   <none>   <none>
+[18:28:27 + 75.8s]   payment-5c4559bc7f-smb96     1/1   Running   0     12s    10.244.1.11   shopflow-final-worker2   <none>   <none>
+[18:28:27 + 76.0s] $ kubectl get pdb
+[18:28:27 + 76.0s]   NAME          MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+[18:28:27 + 76.0s]   gateway-pdb   2               N/A               1                     115s
+[18:28:27 + 76.0s]   orders-pdb    2               N/A               1                     115s
+[18:28:27 + 76.0s] -> drain terminé en 11.7 s
+[18:28:27 + 76.1s] $ kubectl uncordon shopflow-final-worker
+[18:28:27 + 76.1s]   node/shopflow-final-worker uncordoned
+
+[18:28:32 + 81.1s] === 6. Bilan de la boucle de requêtes (journal du pod boucle) ===
+[18:28:32 + 81.3s] Requêtes totales : 214, en échec (hors 2xx) : 0
+[18:28:32 + 81.3s]   pendant « delete pod orders » (6.7 s) : 33 requêtes, 0 échec(s)
+[18:28:32 + 81.3s]   pendant « rolling update gateway » (13.4 s) : 59 requêtes, 0 échec(s)
+[18:28:32 + 81.3s]   pendant « drain + PDB » (11.7 s) : 54 requêtes, 0 échec(s)
+[18:28:37 + 85.5s] $ "C:\Users\Tarek Moussaoui\AppData\Local\Microsoft\WinGet\Packages\Kubernetes.kind_Microsoft.Winget.Source_8wekyb3d8bbwe\kind.exe" delete cluster --name shopflow-final
+[18:28:37 + 85.5s]   Deleting cluster "shopflow-final" ...
+[18:28:37 + 85.5s]   Deleted nodes: ["shopflow-final-worker2" "shopflow-final-control-plane" "shopflow-final-worker"]

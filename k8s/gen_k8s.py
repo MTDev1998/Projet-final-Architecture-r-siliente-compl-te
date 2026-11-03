@@ -1,6 +1,6 @@
 """gen_k8s.py -- génère les manifestes Kubernetes (bonus) : un Deployment + Service par service,
 PodDisruptionBudget pour gateway et orders. Usage : python gen_k8s.py  (écrit *.yaml dans ce dossier)
-Déploiement : kind create cluster --config kind-config.yaml ; kind load docker-image <images> ; kubectl apply -f k8s/
+Déploiement : kind create cluster --config k8s/kind/kind-config.yaml ; kind load docker-image <images> ; kubectl apply -f k8s/
 """
 import os
 
@@ -97,6 +97,7 @@ for nom, (port, rep, env, pdb) in SERVICES.items():
     with open(os.path.join(ICI, f"{nom}.yaml"), "w", encoding="utf-8") as f:
         f.write(deployment(nom, port, rep, env, pdb))
     print("écrit", f"{nom}.yaml")
-with open(os.path.join(ICI, "kind-config.yaml"), "w", encoding="utf-8") as f:
+os.makedirs(os.path.join(ICI, "kind"), exist_ok=True)
+with open(os.path.join(ICI, "kind", "kind-config.yaml"), "w", encoding="utf-8") as f:
     f.write("kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nname: shopflow-final\nnodes:\n  - role: control-plane\n  - role: worker\n  - role: worker\n")
-print("écrit kind-config.yaml")
+print("écrit kind/kind-config.yaml")
