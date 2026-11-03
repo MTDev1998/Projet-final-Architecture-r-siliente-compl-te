@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory
+  labels: {app: inventory, projet: shopflow}
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: inventory}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  template:
+    metadata:
+      labels: {app: inventory, projet: shopflow}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 30
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels: {app: inventory}
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: inventory
+          image: shopflow-inventory:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8002
+          env:
+            - name: PORT
+              value: "8002"
+            - name: SERVICE_NAME
+              value: "inventory"
+            - name: RESILIENCE
+              value: "on"
+          resources:
+            requests: {cpu: "100m", memory: "96Mi"}
+            limits: {cpu: "500m", memory: "256Mi"}
+          startupProbe:
+            httpGet: {path: /health/startup, port: 8002}
+            periodSeconds: 2
+            failureThreshold: 15
+          livenessProbe:
+            httpGet: {path: /health/live, port: 8002}
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: {path: /health/ready, port: 8002}
+            periodSeconds: 5
+            failureThreshold: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory
+  labels: {app: inventory, projet: shopflow}
+spec:
+  selector: {app: inventory}
+  ports:
+    - port: 8002
+      targetPort: 8002
+  type: ClusterIP

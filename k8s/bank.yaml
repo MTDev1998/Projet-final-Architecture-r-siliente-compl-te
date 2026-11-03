@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bank
+  labels: {app: bank, projet: shopflow}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: bank}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  template:
+    metadata:
+      labels: {app: bank, projet: shopflow}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 30
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels: {app: bank}
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: bank
+          image: shopflow-bank:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+            - name: SERVICE_NAME
+              value: "bank"
+            - name: RESILIENCE
+              value: "on"
+          resources:
+            requests: {cpu: "100m", memory: "96Mi"}
+            limits: {cpu: "500m", memory: "256Mi"}
+          startupProbe:
+            httpGet: {path: /health/startup, port: 8080}
+            periodSeconds: 2
+            failureThreshold: 15
+          livenessProbe:
+            httpGet: {path: /health/live, port: 8080}
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: {path: /health/ready, port: 8080}
+            periodSeconds: 5
+            failureThreshold: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bank
+  labels: {app: bank, projet: shopflow}
+spec:
+  selector: {app: bank}
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP

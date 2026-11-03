@@ -1,0 +1,52 @@
+groups:
+  - name: shopflow-slo
+    rules:
+      # SLI : part des requêtes du gateway servies sans erreur serveur (5xx). Les 429 sont des refus volontaires
+      # côté client abusif et ne comptent pas comme indisponibilité.
+      - record: slo:gateway_availability:ratio_rate5m
+        expr: |
+          1 - (
+            sum(rate(http_requests_total{service="gateway",code=~"5.."}[5m]))
+            /
+            clamp_min(sum(rate(http_requests_total{service="gateway",code!="429"}[5m])), 1e-9)
+          )
+
+      # Alerte SLO : disponibilité sous 99,5 % sur 5 min pendant 1 min (page l'astreinte).
+      - alert: ShopFlowSLOAvailability
+        expr: slo:gateway_availability:ratio_rate5m < 0.995
+        for: 1m
+        labels: {severity: page}
+        annotations:
+          summary: "Disponibilité du gateway sous le SLO de 99,5 %"
+          description: "Disponibilité 5 min = {{ $value | humanizePercentage }} (SLO 99,5 %)."
+
+      # Burn rate rapide : le budget d'erreur (0,5 %) est consommé 14,4 fois plus vite que prévu.
+      - alert: ShopFlowErrorBudgetBurnFast
+        expr: (1 - slo:gateway_availability:ratio_rate5m) > 14.4 * 0.005
+        for: 2m
+        labels: {severity: page}
+        annotations:
+          summary: "Budget d'erreur brûlé 14,4x trop vite"
+
+      # Indicateur avancé : latence p95 d'une dépendance au-dessus d'1 s (cause avant symptôme, TP 1 partie C).
+      - alert: ShopFlowDependencyLatency
+        expr: |
+          histogram_quantile(0.95, sum by (le, service, dependance) (rate(outbound_request_duration_seconds_bucket[2m]))) > 1
+        for: 1m
+        labels: {severity: ticket}
+        annotations:
+          summary: "p95 de {{ $labels.service }} -> {{ $labels.dependance }} > 1 s"
+
+      - alert: ShopFlowCircuitOpen
+        expr: circuit_breaker_state == 2
+        for: 30s
+        labels: {severity: ticket}
+        annotations:
+          summary: "Circuit {{ $labels.service }} -> {{ $labels.dependance }} ouvert"
+
+      - alert: ShopFlowPendingPayments
+        expr: orders_pending_payment > 20
+        for: 2m
+        labels: {severity: ticket}
+        annotations:
+          summary: "{{ $value }} commandes en attente de paiement"

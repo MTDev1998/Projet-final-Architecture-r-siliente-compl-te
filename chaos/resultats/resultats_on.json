@@ -1,0 +1,106 @@
+[
+ {
+  "num": "b",
+  "mode": "on",
+  "titre": "Banque totalement indisponible 20 s",
+  "hypothese": "circuit breaker + fallback « paiement différé » : les commandes sont acceptées (202), SLI >= 95 %, puis rejouées",
+  "panne": "flaky bank : down=1 pendant 20 s",
+  "rayon": "payment -> bank ; 100 % des paiements",
+  "ref": {
+   "n": 329,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 109.99999998603016,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 807,
+   "sli": 0.9962825278810409,
+   "nominal": 0.31970260223048325,
+   "degrade": 0.6765799256505576,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 46.999999991385266,
+   "sli_checkout": 0.9945454545454545
+  },
+  "recup": {
+   "n": 524,
+   "sli": 1.0,
+   "nominal": 0.9045801526717557,
+   "degrade": 0.09541984732824428,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 108.99999999674037,
+   "sli_checkout": 1.0
+  },
+  "detection_s": 0.5742099285125732,
+  "recuperation_s": 1.7693219184875488,
+  "arret_s": null,
+  "debits_banque": 583,
+  "commandes": {
+   "pending_payment": 539,
+   "paid": 583
+  },
+  "abus_429": 0,
+  "abus_total": 0,
+  "t_inj": 1793723956.9379494,
+  "t_res": 1793723976.966482,
+  "t_fin": 1793723991.969987,
+  "validee": true
+ },
+ {
+  "num": "g",
+  "mode": "on",
+  "titre": "Client abusif : 100 req/s avec un seul X-Client-Id",
+  "hypothese": "le rate limiting isole l'abuseur (429) : SLI des autres clients >= 95 %",
+  "panne": "thread envoyant 100 req/s sur /products pendant 20 s",
+  "rayon": "gateway ; tous les clients",
+  "ref": {
+   "n": 332,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 109.99999998603016,
+   "sli_checkout": 1.0
+  },
+  "panne_mesure": {
+   "n": 651,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 110.00000001513399,
+   "sli_checkout": 1.0
+  },
+  "recup": {
+   "n": 487,
+   "sli": 1.0,
+   "nominal": 1.0,
+   "degrade": 0.0,
+   "erreurs_5xx": 0,
+   "r429": 0,
+   "p95_ms": 109.99999998603016,
+   "sli_checkout": 1.0
+  },
+  "detection_s": null,
+  "recuperation_s": 0.00851297378540039,
+  "arret_s": null,
+  "debits_banque": 1275,
+  "commandes": {
+   "pending_payment": -220,
+   "paid": 1276
+  },
+  "abus_429": 992,
+  "abus_total": 1212,
+  "t_inj": 1793724004.011874,
+  "t_res": 1793724024.052158,
+  "t_fin": 1793724039.0527382,
+  "validee": true
+ }
+]

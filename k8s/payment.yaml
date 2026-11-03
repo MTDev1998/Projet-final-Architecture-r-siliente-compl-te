@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  labels: {app: payment, projet: shopflow}
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: payment}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  template:
+    metadata:
+      labels: {app: payment, projet: shopflow}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8003"
+        prometheus.io/path: "/metrics"
+    spec:
+      terminationGracePeriodSeconds: 30
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels: {app: payment}
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: payment
+          image: shopflow-payment:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8003
+          env:
+            - name: PORT
+              value: "8003"
+            - name: SERVICE_NAME
+              value: "payment"
+            - name: RESILIENCE
+              value: "on"
+            - name: BANK_URL
+              value: "http://bank:8080"
+          resources:
+            requests: {cpu: "100m", memory: "96Mi"}
+            limits: {cpu: "500m", memory: "256Mi"}
+          startupProbe:
+            httpGet: {path: /health/startup, port: 8003}
+            periodSeconds: 2
+            failureThreshold: 15
+          livenessProbe:
+            httpGet: {path: /health/live, port: 8003}
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet: {path: /health/ready, port: 8003}
+            periodSeconds: 5
+            failureThreshold: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  labels: {app: payment, projet: shopflow}
+spec:
+  selector: {app: payment}
+  ports:
+    - port: 8003
+      targetPort: 8003
+  type: ClusterIP

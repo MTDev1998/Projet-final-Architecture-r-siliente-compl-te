@@ -1,0 +1,74 @@
+# ShopFlow résilient -- docker compose up -d --build
+# RESILIENCE=off docker compose up -d   -> mode « avant » (tous les patterns désactivés) pour les expériences de chaos
+x-service: &service
+  build:
+    context: ./services
+  restart: unless-stopped
+  environment: &env
+    RESILIENCE: ${RESILIENCE:-on}
+    STARTUP_DELAI: "2"
+    DRAIN: "5"
+  healthcheck:
+    test: ["CMD", "python", "-c", "import os,urllib.request; urllib.request.urlopen('http://localhost:%s/health/ready' % os.environ['PORT'], timeout=2)"]
+    interval: 5s
+    timeout: 3s
+    retries: 3
+    start_period: 5s
+
+services:
+  bank:                       # API bancaire externe simulée (instable, pilotée par /admin)
+    <<: *service
+    build: {context: ./services, args: {SERVICE: bank}}
+    environment: {<<: *env, PORT: "8080"}
+    ports: ["8080:8080"]
+
+  inventory:
+    <<: *service
+    build: {context: ./services, args: {SERVICE: inventory}}
+    environment: {<<: *env, PORT: "8002"}
+    deploy: {replicas: 2}
+
+  payment:
+    <<: *service
+    build: {context: ./services, args: {SERVICE: payment}}
+    environment: {<<: *env, PORT: "8003", BANK_URL: "http://bank:8080"}
+    depends_on: {bank: {condition: service_healthy}}
+    deploy: {replicas: 2}
+
+  orders:
+    <<: *service
+    build: {context: ./services, args: {SERVICE: orders}}
+    environment: {<<: *env, PORT: "8001", INVENTORY_URL: "http://inventory:8002", PAYMENT_URL: "http://payment:8003"}
+    depends_on:
+      inventory: {condition: service_healthy}
+      payment: {condition: service_healthy}
+
+  gateway:
+    <<: *service
+    build: {context: ./services, args: {SERVICE: gateway}}
+    environment: {<<: *env, PORT: "8000", ORDERS_URL: "http://orders:8001", INVENTORY_URL: "http://inventory:8002"}
+    depends_on: {orders: {condition: service_healthy}}
+    ports: ["8000:8000"]
+
+  prometheus:
+    image: prom/prometheus:v3.6.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2d"]
+    volumes:
+      - ./observability/prometheus:/etc/prometheus:ro
+    ports: ["9090:9090"]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.2.1
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/shopflow.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
+    restart: unless-stopped

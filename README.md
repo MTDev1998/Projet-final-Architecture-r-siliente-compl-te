@@ -1,0 +1,84 @@
+# ShopFlow résilient — Projet final « Architecture résiliente complète »
+
+M2 LDF · Patterns de résilience · **MOUSSAOUI Tarek**
+
+Application e-commerce de démonstration composée de 5 services HTTP (Python 3.12, bibliothèque standard
+uniquement), instrumentée pour Prometheus et Grafana, livrée avec une campagne de chaos engineering
+« avant / après patterns » et des manifestes Kubernetes.
+
+```
+clients -> gateway -> orders -> inventory (x2)
+                             -> payment (x2) -> banque externe instable
+```
+
+## Lancer tout en une commande
+
+```bash
+docker compose up -d --build
+```
+
+| Point d'accès | URL |
+|---|---|
+| API (gateway) | http://localhost:8000 — `GET /products`, `POST /checkout`, `GET /orders/<id>`, `GET /health/ready`, `GET /metrics` |
+| Banque simulée (injection de pannes) | http://localhost:8080/admin?fail_rate=0.3&latency=2&down=0&fail_after=0 |
+| Prometheus (règles SLO + alertes) | http://localhost:9090/alerts |
+| Grafana (tableau de bord provisionné) | http://localhost:3000 (admin / admin, lecture anonyme autorisée) |
+
+Exemple :
+
+```bash
+curl -s -H "X-Client-Id: demo" http://localhost:8000/products
+curl -s -X POST -H "X-Client-Id: demo" -H "Content-Type: application/json" \
+     -d '{"order_id":"demo-1","sku":"A12","qty":1,"montant":19.9}' http://localhost:8000/checkout
+```
+
+Arrêt : `docker compose down`. Mode « avant » (tous les patterns désactivés) : `RESILIENCE=off docker compose up -d`.
+
+## Campagne de chaos (7 expériences, avant / après)
+
+```bash
+python chaos/experiences.py            # ~15 min : redémarre la stack en off puis en on, joue a..g, écrit chaos/resultats/
+python chaos/graphes.py                # courbes Prometheus de la campagne -> docs/
+```
+
+Expériences : (a) banque 30 % d'erreurs, (b) banque indisponible, (c) banque lente 3 s, (d) perte d'une instance
+inventory, (e) crash d'orders, (f) réponses perdues après débit (idempotence), (g) client abusif.
+
+## Contenu du dépôt
+
+| Dossier | Contenu |
+|---|---|
+| `services/common/` | socle commun : `metrics.py` (format Prometheus), `resilience.py` (timeout, retry, circuit breaker, bulkhead, rate limiting, load shedding, cache stale-if-error), `server.py` (routage, sondes, arrêt propre) |
+| `services/<nom>/app.py` | gateway, orders, inventory, payment, bank |
+| `services/Dockerfile` | image commune (slim, non root, HEALTHCHECK, CMD exec) |
+| `docker-compose.yml` | 5 services (inventory et payment ×2), healthchecks, restart, Prometheus, Grafana |
+| `observability/` | `prometheus.yml` (découverte DNS), `alerts.yml` (SLO 99,5 %, burn rate, latence, circuits), dashboard Grafana (`gen_dashboard.py`) |
+| `chaos/` | `experiences.py` (campagne automatisée), `graphes.py`, `resultats/` (JSON, `comparaison.md`) |
+| `analyse/` | `archi.py` (disponibilité composite, SPOF), `graphe.py` (graphe de dépendances) |
+| `k8s/` | Deployments (3 réplicas gateway/orders), Services, PodDisruptionBudgets, `kind-config.yaml`, `gen_k8s.py` |
+| `docs/` | **Dossier d'architecture** (`Dossier_architecture_MOUSSAOUI_Tarek.docx`), figures |
+
+## Patterns mis en œuvre (chacun relié à un risque de l'AMDEC, voir le dossier)
+
+| Pattern | Où | Paramètres |
+|---|---|---|
+| Timeout | tous les appels sortants | gateway→orders 4 s, orders→inventory 0,5 s, orders→payment 2 s, payment→banque 1 s |
+| Retry + backoff + jitter, Retry-After | payment→banque, orders→inventory | 3 / 2 tentatives, base 0,1 s, plafond 0,5–2 s |
+| Circuit breaker | payment→banque, orders→payment/inventory, gateway→orders | 5 / 3 / 5 / 10 échecs, réouverture 10 / 10 / 5 / 5 s |
+| Bulkhead | orders | 16 places inventory, 8 places payment |
+| Fallback / dégradation gracieuse | orders (paiement différé 202 + rejeu asynchrone), gateway (catalogue périmé `X-Degraded: stale`) | rejeu toutes les 3 s |
+| Rate limiting | gateway | token bucket 20 jetons, 10/s par `X-Client-Id`, 429 + Retry-After |
+| Load shedding | gateway | 32 requêtes simultanées, 25 % réservées à `/checkout`, 503 + Retry-After |
+| Health checks | tous | `/health/live`, `/ready`, `/startup`, `/deps` ; drain 5 s sur SIGTERM |
+| Cache résilient | gateway | TTL 5 s, stale-if-error 300 s |
+| Idempotence | payment→banque, inventory, orders | `Idempotency-Key` = `order_id` |
+
+## Kubernetes (bonus)
+
+```bash
+python k8s/gen_k8s.py
+kind create cluster --config k8s/kind-config.yaml
+docker compose build && for s in gateway orders inventory payment bank; do docker tag projet-final-architecture-r-siliente-compl-te-$s shopflow-$s:1.0; done
+kind load docker-image shopflow-gateway:1.0 shopflow-orders:1.0 shopflow-inventory:1.0 shopflow-payment:1.0 shopflow-bank:1.0 --name shopflow-final
+kubectl apply -f k8s/
+```

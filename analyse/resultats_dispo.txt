@@ -1,0 +1,26 @@
+=== Docker Compose (livré) ===
+  gateway          1 instance(s) à 99.5%  -> étage 99.50000%
+  orders           1 instance(s) à 99.5%  -> étage 99.50000%
+  inventory        2 instance(s) à 99.5%  -> étage 99.99750%
+  payment          2 instance(s) à 99.5%  -> étage 99.99750%
+  banque externe   1 instance(s) à 99.9%  -> étage 99.90000%
+  Disponibilité du parcours, banque synchrone dans le chemin critique : 98.8986%  (96.5 h/an)
+  Avec fallback « paiement différé » (la banque sort du chemin d'acceptation) : 98.9975%  (87.8 h/an)
+  SPOF (gain si doublé) :
+    - gateway          99.5%  gain +0.494%  (43.3 h/an)
+    - orders           99.5%  gain +0.494%  (43.3 h/an)
+    - banque externe   99.9%  gain +0.099%  (8.7 h/an)
+
+=== Kubernetes (manifestes k8s/, 3 réplicas gateway et orders) ===
+  gateway          3 instance(s) à 99.5%  -> étage 99.99999%
+  orders           3 instance(s) à 99.5%  -> étage 99.99999%
+  inventory        2 instance(s) à 99.5%  -> étage 99.99750%
+  payment          2 instance(s) à 99.5%  -> étage 99.99750%
+  banque externe   1 instance(s) à 99.9%  -> étage 99.90000%
+  Disponibilité du parcours, banque synchrone dans le chemin critique : 99.8950%  (9.2 h/an)
+  Avec fallback « paiement différé » (la banque sort du chemin d'acceptation) : 99.9950%  (0.4 h/an)
+  SPOF (gain si doublé) :
+    - banque externe   99.9%  gain +0.100%  (8.8 h/an)
+
+Objectif : 99,9 % sur l'acceptation des commandes. Atteint seulement si (1) gateway et orders sont redondés et
+(2) la banque n'est plus synchrone dans le chemin d'acceptation (fallback paiement différé), d'où l'architecture cible.
